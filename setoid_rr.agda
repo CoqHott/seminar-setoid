@@ -511,8 +511,8 @@ postulate cast-Quotient : (Q Q' : quotient-data ℓ)
 Quotient-elim2-aux : (Q : quotient-data ℓ)
                  (P : Quotient Q → Quotient Q → Set ℓ₁)
                  (p : (x y : carrier Q) → P (pi x) (pi y))
-                 (e : (x x' y y' : carrier Q) → (ℚ-rel1 : rel Q x x') → (ℚ-rel2 : rel Q y y') →
-                            Id _ (transport-Id (P (pi x')) (pi y) (transport-Id (λ x → P x (pi y)) (pi x) (p x y) (pi x') ℚ-rel1) (pi y') ℚ-rel2) (p x' y')) (x : carrier Q) (w : Quotient Q) → P w (pi x)
+                 (e : (x x' y y' : carrier Q) → (Q-rel1 : rel Q x x') → (Q-rel2 : rel Q y y') →
+                            Id _ (transport-Id (P (pi x')) (pi y) (transport-Id (λ x → P x (pi y)) (pi x) (p x y) (pi x') Q-rel1) (pi y') Q-rel2) (p x' y')) (x : carrier Q) (w : Quotient Q) → P w (pi x)
 Quotient-elim2-aux Q P p e x = Quotient-elim Q (λ w → P w (pi x)) (λ y → p y x) (λ y y' r → let e-cst = e y y' x x r (rel-refl Q x) in transport (λ e → Id (P (pi y') (pi x))
         (e
          (cast (P (pi y) (pi x)) (P (pi y') (pi x)) (ap (λ y → P y (pi x)) r) (p y x)))
@@ -522,8 +522,8 @@ Quotient-elim2-aux Q P p e x = Quotient-elim Q (λ w → P w (pi x)) (λ y → p
 Quotient-elim2 : (Q : quotient-data ℓ)
                  (P : Quotient Q → Quotient Q → Set ℓ₁)
                  (p : (x y : carrier Q) → P (pi x) (pi y))
-                 (e : (x x' y y' : carrier Q) → (ℚ-rel1 : rel Q x x') → (ℚ-rel2 : rel Q y y') →
-                         Id _ (transport-Id (P (pi x')) (pi y) (transport-Id (λ x → P x (pi y)) (pi x) (p x y) (pi x') ℚ-rel1) (pi y') ℚ-rel2) (p x' y'))
+                 (e : (x x' y y' : carrier Q) → (Q-rel1 : rel Q x x') → (Q-rel2 : rel Q y y') →
+                         Id _ (transport-Id (P (pi x')) (pi y) (transport-Id (λ x → P x (pi y)) (pi x) (p x y) (pi x') Q-rel1) (pi y') Q-rel2) (p x' y'))
                  (w w' : Quotient Q) → P w w'
 Quotient-elim2 Q P p e w =
   Quotient-elim Q (P w) (λ x → Quotient-elim2-aux Q P p e x w)
