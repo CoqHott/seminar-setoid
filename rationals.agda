@@ -2,6 +2,7 @@
 
 open import setoid_rr
 open import Agda.Builtin.Nat
+open import Agda.Builtin.Equality
 
 ℚ-carrier : Set
 ℚ-carrier = prod Nat Nat
@@ -34,3 +35,6 @@ postulate lia : (n m : Nat) → Id Nat n m
 
 _+ℚ_ : ℚ → ℚ → ℚ
 _+ℚ_ = Quotient-elim2 ℚ-quotient (λ _ _ → ℚ) (λ x y → pi (+ℚ-carrier x y)) +ℚ-carrier-compat
+
+test : (pi (3 , 4)) +ℚ (pi (4 , 2)) ≡ (pi (29 , 14))
+test = refl
