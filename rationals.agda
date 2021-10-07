@@ -36,5 +36,7 @@ postulate lia : (n m : Nat) → Id Nat n m
 _+ℚ_ : ℚ → ℚ → ℚ
 _+ℚ_ = Quotient-elim2 ℚ-quotient (λ _ _ → ℚ) (λ x y → pi (+ℚ-carrier x y)) +ℚ-carrier-compat
 
-test : pi (3 , 4) +ℚ pi (4 , 2) ≡ pi (29 , 14)
+_//_ = λ a b → pi {Q = ℚ-quotient} (a , b)
+
+test : (3 // 4) +ℚ (4 // 2) ≡ (29 // 14)
 test = refl
