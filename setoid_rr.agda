@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --prop --confluence-check #-}
+{-# OPTIONS --rewriting --prop --confluence-check --show-irrelevant #-}
 
 open import Agda.Primitive
 open import Agda.Builtin.Bool
@@ -95,7 +95,7 @@ postulate cast-refl : {A : Set ℓ} (e : Id _ A A) (a : A) → Id A (cast A A e 
 
 postulate transport : {A : Set ℓ} (P : A → Prop ℓ₁) (x : A) (t : P x) (y : A) (e : Id A x y) → P y
 
--- direct derived functions 
+-- direct derived functions
 
 ap : {A : Set ℓ} {B : Set ℓ₁} {x y : A} (f : A → B) (e : Id A x y) →
      Id B (f x) (f y)
@@ -106,6 +106,10 @@ transport-Id P x t y e = cast (P x) (P y) (ap P e) t
 
 transport-refl : {A : Set ℓ} (P : A → Set ℓ₁) (x : A) (t : P x) (e : Id A x x) → Id _ (transport-Id P x t x e) t
 transport-refl P x t e = cast-refl (ap P e) t
+
+apD : {A : Set ℓ} {B : A → Set ℓ₁} {x y : A} (f : (a : A) → B a) (e : Id A x y) →
+     Id (B y) (transport-Id B x (f x) y e) (f y)
+apD {A = A} {B} {x} {y} f e = transport (λ z → (e : Id A x z) → Id (B z) (transport-Id B x (f x) z e) (f z)) x (transport-refl B x (f x)) y e e
 
 inverse  : (A : Set ℓ) {x y : A} (p : Id {ℓ} A x y) → Id A y x
 inverse A {x} {y} p = transport (λ z → Id A z x) x (Id-refl x) y p
@@ -468,15 +472,16 @@ postulate Id-Quotient : (Q : quotient-data ℓ)
 
 {-# REWRITE Id-Quotient #-}
 
+
 postulate Quotient-elim : (Q : quotient-data ℓ)
-               (P : Quotient Q → Set ℓ₁) 
+               (P : Quotient Q → Set ℓ₁)
                (p : (x : carrier Q) → P (pi x))
                (e : (x y : carrier Q) → (r : rel Q x y) →
                     Id _ (transport-Id P (pi x) (p x) (pi y) r) (p y))
                (w : Quotient Q) → P w
 
 postulate Quotient-elim-red : (Q : quotient-data ℓ)
-                (P : Quotient Q → Set ℓ₁) 
+                (P : Quotient Q → Set ℓ₁)
                 (p : (x : carrier Q) → P (pi x))
                 (e : (x y : carrier Q) → (r : rel Q x y) →
                      Id _ (transport-Id P (pi x) (p x) (pi y) r) (p y))
@@ -486,8 +491,30 @@ postulate Quotient-elim-red : (Q : quotient-data ℓ)
 
 {-# REWRITE Quotient-elim-red #-}
 
+Quotient-rec : (Q : quotient-data ℓ)
+               (P : Set ℓ₁)
+               (p : (x : carrier Q) → P)
+               (e : (x y : carrier Q) → (r : rel Q x y) → Id P (p x) (p y))
+               (w : Quotient Q) → P
+Quotient-rec Q P p e w =
+  Quotient-elim Q
+                (λ w → P)
+                p
+                (λ x y r → transport (λ X → Id P X (p y)) (p x) (e x y r) (cast P P (Id-refl P) (p x))
+                (inverse P (cast-refl (Id-refl P) (p x))))
+                w
+
+Quotient-rec-red : (Q : quotient-data ℓ)
+                   (P : Set ℓ₁)
+                   (p : (x : carrier Q) → P)
+                   (e : (x y : carrier Q) → (r : rel Q x y) → Id P (p x) (p y))
+                   (a : carrier Q) →
+                   Quotient-rec Q P p e (pi a)
+                   ≡ p a
+Quotient-rec-red Q P p e a = refl
+
 postulate Quotient-elim-prop : (Q : quotient-data ℓ)
-               (P : Quotient Q → Prop ℓ₁) 
+               (P : Quotient Q → Prop ℓ₁)
                (p : (x : carrier Q) → P (pi x))
                (w : Quotient Q) → P w
 
@@ -499,12 +526,37 @@ postulate Id-Type-Quotient : (Q Q' : quotient-data ℓ) →
 
 {-# REWRITE Id-Type-Quotient #-}
 
-postulate cast-Quotient : (Q Q' : quotient-data ℓ) 
+postulate cast-Quotient : (Q Q' : quotient-data ℓ)
                 (a : carrier Q) (e : _) →
                 cast (Quotient Q) (Quotient Q') e (pi a) ≡
                 pi (cast (carrier Q) (carrier Q') (fstC e) a)
 
 {-# REWRITE cast-Quotient #-}
+
+
+-- double recursion principle
+
+Quotient-rec2-aux : (Q : quotient-data ℓ)
+                    (P : Set ℓ₁)
+                    (p : (x y : carrier Q) → P)
+                    (e : (x x' y y' : carrier Q) → (Q-rel1 : rel Q x x') → (Q-rel2 : rel Q y y') → Id _ (p x y) (p x' y'))
+                    (x : carrier Q) (w : Quotient Q) → P
+Quotient-rec2-aux Q P p e x = Quotient-rec Q P (λ y → p y x) (λ y y' r → e y y' x x r (rel-refl Q x))
+
+
+
+Quotient-rec2 : (Q : quotient-data ℓ)
+                (P : Set ℓ₁)
+                (p : (x y : carrier Q) → P)
+                (e : (x x' y y' : carrier Q) → (Q-rel1 : rel Q x x') → (Q-rel2 : rel Q y y') → Id _ (p x y) (p x' y'))
+                (x : Quotient Q) (w : Quotient Q) → P
+Quotient-rec2 Q P p e = Quotient-rec Q (Quotient Q → P) (λ x → Quotient-rec2-aux Q P p e x)
+                                       λ x x' r → Quotient-elim-prop Q
+                                         (λ w →
+                                           Id P (Quotient-rec2-aux Q P p e x w)
+                                           (Quotient-rec2-aux Q P p e x' w))
+                                         (λ y → e y y x x' (rel-refl Q y) r)
+
 
 -- double induction principle
 
@@ -517,7 +569,7 @@ Quotient-elim2-aux Q P p e x = Quotient-elim Q (λ w → P w (pi x)) (λ y → p
         (e
          (cast (P (pi y) (pi x)) (P (pi y') (pi x)) (ap (λ y → P y (pi x)) r) (p y x)))
         (p y' x)) (cast (P (pi y') (pi x)) (P (pi y') (pi x)) (ap (P (pi y')) (rel-refl Q x)))
-           e-cst (λ w → w) λ a → cast-refl {A = P (pi y') (pi x)} (Id-refl (P (pi y') (pi x))) a ) 
+           e-cst (λ w → w) λ a → cast-refl {A = P (pi y') (pi x)} (Id-refl (P (pi y') (pi x))) a )
 
 Quotient-elim2 : (Q : quotient-data ℓ)
                  (P : Quotient Q → Quotient Q → Set ℓ₁)

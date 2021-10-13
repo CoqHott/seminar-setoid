@@ -15,6 +15,9 @@ record cring : Set₁ where
     0R : R
     1R : R
 
+    +0R : (r : R) → r + 0R ≡ r
+    0R+ : (r : R) → 0R + r ≡ r
+
     -- missing laws
 
 
@@ -63,3 +66,32 @@ module _ (cR : cring) where
 
   poly : Set
   poly = Quotient poly-quotient
+
+
+  _+prepoly_ : prepoly → prepoly → prepoly
+  [] +prepoly q = q
+  p@(_ ∷ _) +prepoly [] = p
+  (r ∷ p) +prepoly (r′ ∷ q) = r + r′ ∷ p +prepoly q
+
+  +prepoly-is-nullˡ : (p q : prepoly) → is-null q → up-to-trailing-0 (p +prepoly q) p
+  +prepoly-is-nullˡ [] q nq = up-to-null nq nil-is-null
+  +prepoly-is-nullˡ p@(_ ∷ _) .[] nil-is-null = up-to-trailing-0-refl p
+  +prepoly-is-nullˡ (x ∷ p) .(0R ∷ _) (0::-is-null nq) rewrite +0R x = up-to-cons x (+prepoly-is-nullˡ p _ nq)
+
+  +prepoly-is-nullʳ : (p q : prepoly) → is-null p → up-to-trailing-0 (p +prepoly q) q
+  +prepoly-is-nullʳ [] q np = up-to-trailing-0-refl q
+  +prepoly-is-nullʳ p@(_ ∷ _) [] np = up-to-null np nil-is-null
+  +prepoly-is-nullʳ .(0R ∷ _) (x ∷ q) (0::-is-null np) rewrite 0R+ x = up-to-cons x (+prepoly-is-nullʳ _ q np)
+
+
+  +prepoly-compat : (p p′ q q′ : prepoly) → up-to-trailing-0 p p′ → up-to-trailing-0 q q′ → up-to-trailing-0 (p +prepoly q) (p′ +prepoly q′)
+  +prepoly-compat p p′ q q′ (up-to-null np np′) hq =
+    up-to-trailing-0-trans _ _ _ (+prepoly-is-nullʳ p q np) (up-to-trailing-0-trans _ _ _ hq (up-to-trailing-0-sym _ _ (+prepoly-is-nullʳ p′ q′ np′)))
+  +prepoly-compat .(_ ∷ _) .(_ ∷ _) q q′ hp@(up-to-cons _ _) (up-to-null nq nq′) =
+    up-to-trailing-0-trans _ _ _ (+prepoly-is-nullˡ _ q nq) (up-to-trailing-0-trans _ _ _ hp (up-to-trailing-0-sym _ _ (+prepoly-is-nullˡ _ q′ nq′)))
+  +prepoly-compat .(r ∷ _) .(r ∷ _) .(r′ ∷ _) .(r′ ∷ _) (up-to-cons r hp) (up-to-cons r′ hq) =
+    up-to-cons (r + r′) (+prepoly-compat _ _ _ _ hp hq)
+
+  _+P_ : poly → poly → poly
+  _+P_ = Quotient-rec2 poly-quotient poly (λ x y → pi (x +prepoly y)) +prepoly-compat
+
